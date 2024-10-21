@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Real-Time Device Tracker</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+        }
+        #canvas {
+            border: 1px solid black;
+            width: 500px;
+            height: 500px;
+            display: block;
+            margin: 20px auto;
+        }
+        #info {
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+    <h1 style="text-align:center;">Real-Time Device Tracker</h1>
+    <div id="info">Tracking the device in real time...</div>
+
+    <button onclick={test()}>update</button>
+    <canvas id="canvas" width="500" height="500"></canvas>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.js"></script>
+    <script>
+        const socket = io.connect(location.protocol + '//' + location.host);
+
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const width = canvas.width;
+        const height = canvas.height;
+
+        const accessPoints = {
+            'S24_ULTRA': {'x': 0, 'y': 0},
+            'TP-Link_EA94': {'x': 4.5, 'y': 0},
+            'INFINITUMD29C_2.4': {'x': 2.5, 'y': 5}
+        };
+        function test(){
+            ctx.fillStyle = 'green';
+            ctx.beginPath();
+            ctx.arc(250, 50, 1, 0, 2 * Math.PI); // 8 is the radius of the access point marker
+            ctx.fill();
+        }
+
+        // Function to draw access points and device position
+        function drawScene(position) {
+            // Clear the canvas (width and height should be canvas dimensions)
+            ctx.clearRect(0, 0, width, height);
+        
+            // Scale factor to map real-world coordinates to canvas coordinates
+            const scaleFactorX = 100;  // Assuming a real-world width of 5 meters
+            const scaleFactorY = 100; // Assuming a real-world height of 5 meters
+            
+            // Draw access points
+           
+            for (const ap in accessPoints) {
+                const apX = accessPoints[ap].x * scaleFactorX;
+                const apY = accessPoints[ap].y * scaleFactorY;
+                console.log(`Drawing AP ${ap} at (${apX}, ${apY})`);
+                ctx.fillStyle = 'red';
+                ctx.beginPath();
+                ctx.arc(apX, apY, 2, 0, 2 * Math.PI); // 8 is the radius of the access point marker
+                ctx.fill();
+        
+                // Optionally, label the access point for debugging
+                ctx.fillStyle = 'black';
+                ctx.font = '8px Arial';
+                ctx.fillText(ap, apX + 10, apY - 10); // Labels the AP near the marker
+            }
+        
+            // Draw the device position (scale the device's coordinates to fit the canvas)
+            const deviceX = position.x * scaleFactorX;
+            const deviceY = position.y * scaleFactorY;
+            
+            ctx.fillStyle = 'blue';
+            ctx.beginPath();
+            ctx.arc(deviceX, deviceY, 2, 0, 2 * Math.PI); // 10 is the radius of the device marker
+            ctx.fill();
+        
+            // Display device position info
+            document.getElementById('info').innerText = `Device position: X = ${position.x.toFixed(2)}, Y = ${position.y.toFixed(2)}`;
+        }
+        
+
+        // Listen for position updates from the server
+        socket.on('update_position', (position) => {
+            //console.log('Position data received:', position);
+            drawScene(position);
+            test();
+        });
+    </script>
+</body>
+</html>
